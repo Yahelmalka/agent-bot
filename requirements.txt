@@ -1,0 +1,8 @@
+python-telegram-bot
+openai
+python-dotenv
+chromadb
+langchain
+langchain-openai
+langchain-chroma
+pypdf
