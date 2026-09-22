@@ -49,6 +49,13 @@ def run_debugger(user_text):
     return run_agent(system_prompt, user_text)
 
 
+def run_general(user_text):
+    system_prompt = """את/ה עוזר/ת כללי/ת וידידותי/ת.
+עני/ה על כל שאלה שאינה קשורה ישירות לתכנון ארכיטקטורה, כתיבת קוד, או תיקון באגים —
+כולל שיחת חולין, שאלות כלליות, מידע כללי ככל שאת/ה יודע/ת."""
+    return run_agent(system_prompt, user_text)
+
+
 @tool
 def Architect(user_text: str) -> str:
     """שימושי כשצריך לתכנן ארכיטקטורת תוכנה, לעצב מבנה מערכת, להחליט אילו רכיבים וטכנולוגיות להשתמש"""
@@ -73,13 +80,16 @@ def ExternalAgent(user_text: str) -> str:
     return run_external_agent(user_text)
 
 
-tools = [Architect, Builder, Debugger, ExternalAgent]
+@tool
+def General(user_text: str) -> str:
+    """שימושי לכל שאלה כללית שלא קשורה לתכנון תוכנה, כתיבת קוד, תיקון באגים, או כלים חיצוניים — שיחת חולין, מידע כללי, שאלות יומיומיות"""
+    return run_general(user_text)
 
-agent = create_agent(
-    model=llm,
-    tools=tools,
-    system_prompt="כשאת/ה מקבל/ת תשובה מכלי (tool), החזר/י אותה בדיוק כפי שהיא, מילה במילה, בלי לשכתב, לסכם או לקצר אותה."
-)
+
+tools = [Architect, Builder, Debugger, ExternalAgent, General]
+
+agent = create_agent(model=llm, tools=tools)
+
 
 def run_agent_system(user_text, history=None, user_name=None):
     history = history or []

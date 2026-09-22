@@ -1,4 +1,5 @@
 import os
+import json
 import asyncio
 import pypdf
 from dotenv import load_dotenv
@@ -13,16 +14,34 @@ AGENT_ICONS = {
     "Builder": "💻 *בילדר*",
     "Debugger": "🐛 *דיבאגר*",
     "ExternalAgent": "🔌 *סוכן חיצוני*",
+    "General": "💬 *עוזר כללי*",
 }
 
-USER_STATE = {}  # chat_id -> {"name", "history", "awaiting_name", "asked_name"}
+STATE_FILE = "/data/user_state.json"
+
+
+def load_state():
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def save_state():
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(USER_STATE, f, ensure_ascii=False)
+
+
+USER_STATE = load_state()
 
 
 def get_state(chat_id):
-    return USER_STATE.setdefault(
-        chat_id,
+    state = USER_STATE.setdefault(
+        str(chat_id),
         {"name": None, "history": [], "awaiting_name": True, "asked_name": False}
     )
+    save_state()
+    return state
 
 
 def format_response(agent_name, text):
@@ -53,6 +72,7 @@ async def handle_name_step(context, chat_id, state, user_text=None):
 
     if not state["asked_name"]:
         state["asked_name"] = True
+        save_state()
         await context.bot.send_message(chat_id=chat_id, text="שלום! 👋 לפני שנתחיל — איך קוראים לך?")
         return True
 
@@ -62,14 +82,16 @@ async def handle_name_step(context, chat_id, state, user_text=None):
 
     state["name"] = user_text.strip()
     state["awaiting_name"] = False
+    save_state()
     await context.bot.send_message(chat_id=chat_id, text=f"נעים להכיר, {state['name']}! 😊 במה אפשר לעזור?")
     return True
 
 
 async def start_command(update, context):
     chat_id = update.message.chat_id
-    USER_STATE[chat_id] = {"name": None, "history": [], "awaiting_name": True, "asked_name": False}
-    await handle_name_step(context, chat_id, USER_STATE[chat_id])
+    USER_STATE[str(chat_id)] = {"name": None, "history": [], "awaiting_name": True, "asked_name": False}
+    save_state()
+    await handle_name_step(context, chat_id, USER_STATE[str(chat_id)])
 
 
 async def help_command(update, context):
@@ -103,6 +125,7 @@ async def handle_message(update, context):
 
     state["history"].append({"role": "user", "content": user_text})
     state["history"].append({"role": "assistant", "content": result_text})
+    save_state()
 
     await send_reply(context, chat_id, format_response(agent_name, result_text))
 
@@ -141,6 +164,7 @@ async def handle_document(update, context):
 
     state["history"].append({"role": "user", "content": f"[קובץ: {document.file_name}]"})
     state["history"].append({"role": "assistant", "content": result_text})
+    save_state()
 
     await send_reply(context, chat_id, format_response(agent_name, result_text))
 
