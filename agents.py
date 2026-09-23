@@ -12,11 +12,25 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 llm = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), temperature=0.3)
 
 
+FORMAT_GUIDELINES = """
+כללי עיצוב לתשובה — חובה לפעול לפיהם, גם אם זה סותר הרגלים רגילים:
+- אסור להשתמש בכותרות עם # או ## — הן לא נתמכות ומוצגות כטקסט גולמי.
+- אסור להשתמש בקווי הפרדה כמו --- או ___ או קווים חוזרים בכל צורה.
+- להדגשה: כוכבית בודדת בלבד — *כך* (לא כוכביים כפולים).
+- להטיה: קו תחתון בודד — _כך_.
+- קוד: שלוש גרשיים בלבד, בלי ציון שפה.
+- לארגון ויזואלי, משתמשים באימוג'י קצר בתחילת נקודה/פסקה במקום כותרת (למשל 🔧 להסבר טכני, 💡 לטיפ, ⚠️ לאזהרה).
+- רשימות: נקודה (•) או מספר ונקודה, לא מקפים.
+- פסקאות קצרות עם רווח ביניהן, במקום קווי הפרדה.
+"""
+
+
 def run_agent(system_prompt, user_text):
+    full_system_prompt = f"{system_prompt}\n\n{FORMAT_GUIDELINES}"
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": full_system_prompt},
             {"role": "user", "content": user_text}
         ],
         temperature=0.3
@@ -27,13 +41,13 @@ def run_agent(system_prompt, user_text):
 def run_architect(user_text):
     system_prompt = """את/ה ארכיטקט/ית תוכנה מנוסה.
 כשמקבלים בקשה, מתכננים ארכיטקטורה: אילו רכיבים צריך, איך הם מתקשרים,
-אילו טכנולוגיות מתאימות. תני תשובה מסודרת עם כותרות, לא קוד מלא — רק תכנון."""
+אילו טכנולוגיות מתאימות. תני תשובה מסודרת, לא קוד מלא — רק תכנון."""
     return run_agent(system_prompt, user_text)
 
 
 def run_builder(user_text):
     system_prompt = """את/ה מפתח/ת תוכנה. כשמקבלים בקשה, כותבים קוד עובד ותמציתי,
-עם הסבר קצר לפני הקוד. תמיד עוטפים קוד ב-code block עם שם השפה."""
+עם הסבר קצר לפני הקוד."""
     return run_agent(system_prompt, user_text)
 
 
@@ -88,7 +102,11 @@ def General(user_text: str) -> str:
 
 tools = [Architect, Builder, Debugger, ExternalAgent, General]
 
-agent = create_agent(model=llm, tools=tools)
+agent = create_agent(
+    model=llm,
+    tools=tools,
+    system_prompt="כשאת/ה מקבל/ת תשובה מכלי (tool), החזר/י אותה בדיוק כפי שהיא, מילה במילה, בלי לשכתב, לסכם או לקצר אותה."
+)
 
 
 def run_agent_system(user_text, history=None, user_name=None):

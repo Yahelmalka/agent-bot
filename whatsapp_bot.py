@@ -51,7 +51,7 @@ def get_state(phone_number):
 
 def format_response(agent_name, text):
     icon = AGENT_ICONS.get(agent_name, "🤖 *תשובה*")
-    return f"{icon}\n{'─' * 18}\n{text}"
+    return f"{icon}\n\n{text}"
 
 
 def extract_pdf_text(media_url):

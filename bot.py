@@ -46,7 +46,7 @@ def get_state(chat_id):
 
 def format_response(agent_name, text):
     icon = AGENT_ICONS.get(agent_name, "🤖 *תשובה*")
-    return f"{icon}\n{'─' * 18}\n{text}"
+    return f"{icon}\n\n{text}"
 
 
 async def keep_typing(context, chat_id):
@@ -174,4 +174,4 @@ app.add_handler(CommandHandler("start", start_command))
 app.add_handler(CommandHandler("help", help_command))
 app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-app.run_polling()  
+app.run_polling()
